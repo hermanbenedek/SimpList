@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter create:*)",
+      "Bash(echo:*)",
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter devices:*)",
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter emulators:*)",
+      "Bash(open -a Simulator:*)",
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "autoApproveToolCalls": "all"
+}
