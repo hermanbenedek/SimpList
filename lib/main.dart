@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'dart:convert';
 
 void main() {
@@ -42,6 +43,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   final Map<int, Animation<double>> _slideAnimations = {};
   final Map<int, AnimationController> _bounceControllers = {};
   final Map<int, Animation<double>> _bounceAnimations = {};
+  final Map<int, Animation<double>> _fadeAnimations = {};
 
   @override
   void initState() {
@@ -78,6 +80,12 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
           vsync: this,
         );
         _bounceAnimations[i] = Tween<double>(begin: 1.0, end: 0.9).animate(
+          CurvedAnimation(
+            parent: _bounceControllers[i]!,
+            curve: Curves.easeInOut,
+          ),
+        );
+        _fadeAnimations[i] = Tween<double>(begin: 1.0, end: 0.5).animate(
           CurvedAnimation(
             parent: _bounceControllers[i]!,
             curve: Curves.easeInOut,
@@ -139,6 +147,13 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
           curve: Curves.easeInOut,
         ),
       );
+      final newFadeAnimations = <int, Animation<double>>{};
+      newFadeAnimations[0] = Tween<double>(begin: 1.0, end: 0.5).animate(
+        CurvedAnimation(
+          parent: newBounceControllers[0]!,
+          curve: Curves.easeInOut,
+        ),
+      );
 
       for (var i = 0; i < _controllers.length; i++) {
         newControllers[i + 1] = _controllers[i]!;
@@ -147,6 +162,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
         newSlideAnimations[i + 1] = _slideAnimations[i]!;
         newBounceControllers[i + 1] = _bounceControllers[i]!;
         newBounceAnimations[i + 1] = _bounceAnimations[i]!;
+        newFadeAnimations[i + 1] = _fadeAnimations[i]!;
       }
 
       _controllers.clear();
@@ -155,16 +171,17 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       _slideAnimations.clear();
       _bounceControllers.clear();
       _bounceAnimations.clear();
+      _fadeAnimations.clear();
       _controllers.addAll(newControllers);
       _focusNodes.addAll(newFocusNodes);
       _animationControllers.addAll(newAnimationControllers);
       _slideAnimations.addAll(newSlideAnimations);
       _bounceControllers.addAll(newBounceControllers);
       _bounceAnimations.addAll(newBounceAnimations);
+      _fadeAnimations.addAll(newFadeAnimations);
 
       _editingIndex = 0;
     });
-    _saveTodos();
 
     // Focus on the new text field
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -173,10 +190,10 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   }
 
   void _updateTodoText(int index, String text) {
-    setState(() {
-      _todos[index].text = text;
-    });
-    _saveTodos();
+    _todos[index].text = text;
+    if (text.isNotEmpty) {
+      _saveTodos();
+    }
   }
 
   void _onTodoSubmitted(int index) {
@@ -206,6 +223,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       final newSlideAnimations = <int, Animation<double>>{};
       final newBounceControllers = <int, AnimationController>{};
       final newBounceAnimations = <int, Animation<double>>{};
+      final newFadeAnimations = <int, Animation<double>>{};
 
       for (var i = 0; i < _todos.length; i++) {
         if (i < index) {
@@ -215,6 +233,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
           newSlideAnimations[i] = _slideAnimations[i]!;
           newBounceControllers[i] = _bounceControllers[i]!;
           newBounceAnimations[i] = _bounceAnimations[i]!;
+          newFadeAnimations[i] = _fadeAnimations[i]!;
         } else {
           newControllers[i] = _controllers[i + 1]!;
           newFocusNodes[i] = _focusNodes[i + 1]!;
@@ -222,6 +241,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
           newSlideAnimations[i] = _slideAnimations[i + 1]!;
           newBounceControllers[i] = _bounceControllers[i + 1]!;
           newBounceAnimations[i] = _bounceAnimations[i + 1]!;
+          newFadeAnimations[i] = _fadeAnimations[i + 1]!;
         }
       }
 
@@ -231,12 +251,14 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       _slideAnimations.clear();
       _bounceControllers.clear();
       _bounceAnimations.clear();
+      _fadeAnimations.clear();
       _controllers.addAll(newControllers);
       _focusNodes.addAll(newFocusNodes);
       _animationControllers.addAll(newAnimationControllers);
       _slideAnimations.addAll(newSlideAnimations);
       _bounceControllers.addAll(newBounceControllers);
       _bounceAnimations.addAll(newBounceAnimations);
+      _fadeAnimations.addAll(newFadeAnimations);
     });
     _saveTodos();
   }
@@ -256,47 +278,22 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
     _saveTodos();
   }
 
-  void _showTrashSheet() {
-    showModalBottomSheet(
+  void _showTrashSheet(BuildContext context) {
+    CupertinoScaffold.showCupertinoModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Trash', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              if (_trash.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Text('Trash is empty', style: TextStyle(fontSize: 18, color: Colors.grey)),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _trash.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(_trash[index].text),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.restore),
-                          onPressed: () {
-                            setState(() {
-                              _todos.insert(0, _trash[index]);
-                              _trash.removeAt(index);
-                              _initializeControllers();
-                            });
-                            _saveTodos();
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext dialogContext) {
+        return TrashBottomSheet(
+          trashItems: _trash,
+          onRestore: (int index) {
+            setState(() {
+              _todos.insert(0, _trash[index]);
+              _trash.removeAt(index);
+              _initializeControllers();
+            });
+            _saveTodos();
+            Navigator.of(dialogContext).pop();
+          },
         );
       },
     );
@@ -328,21 +325,35 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _onRefresh,
-          displacement: 0,
-          edgeOffset: 0,
-          strokeWidth: 0,
-          color: Colors.white.withValues(alpha: 0),
-          backgroundColor: Colors.white.withValues(alpha: 0),
-          child: ListView.builder(
-            controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: _todos.length,
-            itemBuilder: (context, index) {
+    return CupertinoScaffold(
+      body: Builder(
+        builder: (scaffoldContext) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: SafeArea(
+              child: GestureDetector(
+                onTap: () {
+                  if (_editingIndex != null) {
+                    _onTodoUnfocused(_editingIndex!);
+                    _stopEditing();
+                  }
+                },
+                child: Stack(
+                  children: [
+                    RefreshIndicator(
+              onRefresh: _onRefresh,
+              displacement: 0,
+              edgeOffset: 0,
+              strokeWidth: 0,
+              elevation: 0,
+              color: Colors.white.withValues(alpha: 0),
+              backgroundColor: Colors.white.withValues(alpha: 0),
+              child: ListView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(top: 60),
+                itemCount: _todos.length,
+                itemBuilder: (context, index) {
               final todo = _todos[index];
               final isEditing = _editingIndex == index;
 
@@ -362,11 +373,6 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                 onDoubleTap: isEditing ? null : () {
                   _moveToTrash(index);
                 },
-                onVerticalDragEnd: (details) {
-                  if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
-                    _showTrashSheet();
-                  }
-                },
                 child: AnimatedBuilder(
                   animation: _slideAnimations[index]!,
                   builder: (context, child) {
@@ -374,14 +380,16 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                       offset: Offset(_slideAnimations[index]!.value, 0),
                       child: Container(
                         color: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                         child: AnimatedBuilder(
                           animation: _bounceAnimations[index]!,
                           builder: (context, child) {
-                            return Transform.scale(
-                              scale: _bounceAnimations[index]!.value,
-                              alignment: Alignment.centerLeft,
-                              child: isEditing
+                            return Opacity(
+                              opacity: todo.isDone ? _fadeAnimations[index]!.value : 1.0,
+                              child: Transform.scale(
+                                scale: _bounceAnimations[index]!.value,
+                                alignment: Alignment.centerLeft,
+                                child: isEditing
                         ? TextField(
                             controller: _controllers[index],
                             focusNode: _focusNodes[index],
@@ -394,7 +402,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                               contentPadding: EdgeInsets.zero,
                             ),
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 22,
                               fontWeight: FontWeight.w500,
                               height: 1.0,
                             ),
@@ -403,15 +411,14 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                               _onTodoSubmitted(index);
                               _stopEditing();
                             },
-                            onTapOutside: (_) {
-                              _onTodoUnfocused(index);
-                              _stopEditing();
+                            onEditingComplete: () {
+                              // Do nothing - let onSubmitted handle it
                             },
                           )
                         : Text(
                             todo.text.isEmpty ? 'Empty todo' : todo.text,
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 22,
                               fontWeight: FontWeight.w500,
                               height: 1.0,
                               decoration: todo.isDone
@@ -422,6 +429,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                               color: todo.isDone ? Colors.grey : (todo.text.isEmpty ? Colors.grey : Colors.black),
                             ),
                           ),
+                              ),
                             );
                           },
                         ),
@@ -433,6 +441,51 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
             },
           ),
         ),
+            // Trash button in top-right corner
+            Positioned(
+              top: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => _showTrashSheet(context),
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.black54,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+            // Bottom third swipe up gesture detector for trash
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.of(context).size.height / 3,
+              child: GestureDetector(
+                onPanEnd: (details) {
+                  // Detect upward swipe with sufficient velocity
+                  if (details.velocity.pixelsPerSecond.dy < -500) {
+                    _showTrashSheet(context);
+                  }
+                },
+                child: Container(
+                  color: Colors.transparent,
+                ),
+              ),
+            ),
+          ],
+        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -453,6 +506,128 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       bounceController.dispose();
     }
     super.dispose();
+  }
+}
+
+class TrashBottomSheet extends StatelessWidget {
+  final List<TodoItem> trashItems;
+  final Function(int) onRestore;
+
+  const TrashBottomSheet({
+    Key? key,
+    required this.trashItems,
+    required this.onRestore,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(40),
+            topRight: Radius.circular(40),
+          ),
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header with close button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Trash',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.black,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              if (trashItems.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(48),
+                  child: Text(
+                    'Trash is empty',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
+                    ),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5,
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: trashItems.length,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            title: Text(
+                              trashItems[index].text,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.restore),
+                              onPressed: () => onRestore(index),
+                              tooltip: 'Restore',
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
