@@ -11,7 +11,9 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter pub get:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(nc:*)",
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter pub run flutter_launcher_icons:*)"
     ],
     "deny": [],
     "ask": []

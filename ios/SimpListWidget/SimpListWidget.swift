@@ -22,7 +22,7 @@ struct Provider: TimelineProvider {
     }
 
     func loadTodos() -> [TodoEntry] {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.voovo.simplist")
+        let sharedDefaults = UserDefaults(suiteName: "group.com.simplist.app")
         guard let todosJson = sharedDefaults?.string(forKey: "todos"),
               let data = todosJson.data(using: .utf8),
               let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {

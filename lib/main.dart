@@ -44,6 +44,9 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   final Map<int, AnimationController> _bounceControllers = {};
   final Map<int, Animation<double>> _bounceAnimations = {};
   final Map<int, Animation<double>> _fadeAnimations = {};
+  final Map<int, AnimationController> _deleteControllers = {};
+  final Map<int, Animation<double>> _deleteAnimations = {};
+  int? _pendingTapIndex;
 
   @override
   void initState() {
@@ -91,6 +94,16 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
             curve: Curves.easeInOut,
           ),
         );
+        _deleteControllers[i] = AnimationController(
+          duration: const Duration(milliseconds: 300),
+          vsync: this,
+        );
+        _deleteAnimations[i] = Tween<double>(begin: 1.0, end: 0.0).animate(
+          CurvedAnimation(
+            parent: _deleteControllers[i]!,
+            curve: Curves.easeInOut,
+          ),
+        );
       }
     }
   }
@@ -127,6 +140,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       final newSlideAnimations = <int, Animation<double>>{};
       final newBounceControllers = <int, AnimationController>{};
       final newBounceAnimations = <int, Animation<double>>{};
+      final newDeleteControllers = <int, AnimationController>{};
+      final newDeleteAnimations = <int, Animation<double>>{};
 
       newControllers[0] = TextEditingController(text: '');
       newFocusNodes[0] = FocusNode();
@@ -154,6 +169,16 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
           curve: Curves.easeInOut,
         ),
       );
+      newDeleteControllers[0] = AnimationController(
+        duration: const Duration(milliseconds: 300),
+        vsync: this,
+      );
+      newDeleteAnimations[0] = Tween<double>(begin: 1.0, end: 0.0).animate(
+        CurvedAnimation(
+          parent: newDeleteControllers[0]!,
+          curve: Curves.easeInOut,
+        ),
+      );
 
       for (var i = 0; i < _controllers.length; i++) {
         newControllers[i + 1] = _controllers[i]!;
@@ -163,6 +188,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
         newBounceControllers[i + 1] = _bounceControllers[i]!;
         newBounceAnimations[i + 1] = _bounceAnimations[i]!;
         newFadeAnimations[i + 1] = _fadeAnimations[i]!;
+        newDeleteControllers[i + 1] = _deleteControllers[i]!;
+        newDeleteAnimations[i + 1] = _deleteAnimations[i]!;
       }
 
       _controllers.clear();
@@ -172,6 +199,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       _bounceControllers.clear();
       _bounceAnimations.clear();
       _fadeAnimations.clear();
+      _deleteControllers.clear();
+      _deleteAnimations.clear();
       _controllers.addAll(newControllers);
       _focusNodes.addAll(newFocusNodes);
       _animationControllers.addAll(newAnimationControllers);
@@ -179,6 +208,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       _bounceControllers.addAll(newBounceControllers);
       _bounceAnimations.addAll(newBounceAnimations);
       _fadeAnimations.addAll(newFadeAnimations);
+      _deleteControllers.addAll(newDeleteControllers);
+      _deleteAnimations.addAll(newDeleteAnimations);
 
       _editingIndex = 0;
     });
@@ -214,6 +245,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       _focusNodes[index]?.dispose();
       _animationControllers[index]?.dispose();
       _bounceControllers[index]?.dispose();
+      _deleteControllers[index]?.dispose();
       _todos.removeAt(index);
 
       // Rebuild controller and focus node maps
@@ -224,6 +256,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       final newBounceControllers = <int, AnimationController>{};
       final newBounceAnimations = <int, Animation<double>>{};
       final newFadeAnimations = <int, Animation<double>>{};
+      final newDeleteControllers = <int, AnimationController>{};
+      final newDeleteAnimations = <int, Animation<double>>{};
 
       for (var i = 0; i < _todos.length; i++) {
         if (i < index) {
@@ -234,6 +268,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
           newBounceControllers[i] = _bounceControllers[i]!;
           newBounceAnimations[i] = _bounceAnimations[i]!;
           newFadeAnimations[i] = _fadeAnimations[i]!;
+          newDeleteControllers[i] = _deleteControllers[i]!;
+          newDeleteAnimations[i] = _deleteAnimations[i]!;
         } else {
           newControllers[i] = _controllers[i + 1]!;
           newFocusNodes[i] = _focusNodes[i + 1]!;
@@ -242,6 +278,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
           newBounceControllers[i] = _bounceControllers[i + 1]!;
           newBounceAnimations[i] = _bounceAnimations[i + 1]!;
           newFadeAnimations[i] = _fadeAnimations[i + 1]!;
+          newDeleteControllers[i] = _deleteControllers[i + 1]!;
+          newDeleteAnimations[i] = _deleteAnimations[i + 1]!;
         }
       }
 
@@ -252,6 +290,8 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       _bounceControllers.clear();
       _bounceAnimations.clear();
       _fadeAnimations.clear();
+      _deleteControllers.clear();
+      _deleteAnimations.clear();
       _controllers.addAll(newControllers);
       _focusNodes.addAll(newFocusNodes);
       _animationControllers.addAll(newAnimationControllers);
@@ -259,14 +299,30 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
       _bounceControllers.addAll(newBounceControllers);
       _bounceAnimations.addAll(newBounceAnimations);
       _fadeAnimations.addAll(newFadeAnimations);
+      _deleteControllers.addAll(newDeleteControllers);
+      _deleteAnimations.addAll(newDeleteAnimations);
     });
     _saveTodos();
   }
 
-  void _moveToTrash(int index) {
+  void _moveToTrash(int index) async {
     final todo = _todos[index];
     _trash.add(todo);
+
+    // Animate shrink to zero
+    await _deleteControllers[index]?.forward();
+
     _removeTodo(index);
+  }
+
+  void _handleTap(int index) {
+    _pendingTapIndex = index;
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (_pendingTapIndex == index) {
+        _toggleTodo(index);
+        _pendingTapIndex = null;
+      }
+    });
   }
 
   void _toggleTodo(int index) async {
@@ -276,6 +332,11 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
     await _bounceControllers[index]?.forward(from: 0);
     await _bounceControllers[index]?.reverse();
     _saveTodos();
+  }
+
+  void _handleDoubleTap(int index) {
+    _pendingTapIndex = null; // Cancel any pending single tap
+    _moveToTrash(index);
   }
 
   void _showTrashSheet(BuildContext context) {
@@ -351,7 +412,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
               child: ListView.builder(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(top: 60),
+                padding: const EdgeInsets.only(top: 20),
                 itemCount: _todos.length,
                 itemBuilder: (context, index) {
               final todo = _todos[index];
@@ -368,26 +429,35 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                   }
                 },
                 onTap: isEditing ? null : () {
-                  _toggleTodo(index);
+                  _handleTap(index);
                 },
                 onDoubleTap: isEditing ? null : () {
-                  _moveToTrash(index);
+                  _handleDoubleTap(index);
                 },
                 child: AnimatedBuilder(
                   animation: _slideAnimations[index]!,
                   builder: (context, child) {
                     return Transform.translate(
                       offset: Offset(_slideAnimations[index]!.value, 0),
-                      child: Container(
-                        color: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                        child: AnimatedBuilder(
-                          animation: _bounceAnimations[index]!,
+                      child: AnimatedBuilder(
+                        animation: _deleteAnimations[index]!,
+                        builder: (context, child) {
+                          return ClipRect(
+                            child: Align(
+                              alignment: Alignment.topLeft,
+                              heightFactor: _deleteAnimations[index]!.value,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 4.0,
+                                ),
+                                child: AnimatedBuilder(
+                          animation: Listenable.merge([_bounceAnimations[index]!, _deleteAnimations[index]!]),
                           builder: (context, child) {
                             return Opacity(
                               opacity: todo.isDone ? _fadeAnimations[index]!.value : 1.0,
                               child: Transform.scale(
-                                scale: _bounceAnimations[index]!.value,
+                                scale: _bounceAnimations[index]!.value * _deleteAnimations[index]!.value,
                                 alignment: Alignment.centerLeft,
                                 child: isEditing
                         ? TextField(
@@ -404,7 +474,15 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w500,
-                              height: 1.0,
+                              height: 1.2,
+                              letterSpacing: 0,
+                              textBaseline: TextBaseline.alphabetic,
+                            ),
+                            strutStyle: const StrutStyle(
+                              fontSize: 22,
+                              height: 1.2,
+                              fontWeight: FontWeight.w500,
+                              forceStrutHeight: true,
                             ),
                             onChanged: (text) => _updateTodoText(index, text),
                             onSubmitted: (_) {
@@ -420,7 +498,9 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w500,
-                              height: 1.0,
+                              height: 1.2,
+                              letterSpacing: 0,
+                              textBaseline: TextBaseline.alphabetic,
                               decoration: todo.isDone
                                   ? TextDecoration.lineThrough
                                   : TextDecoration.none,
@@ -428,11 +508,21 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                               decorationThickness: 2.0,
                               color: todo.isDone ? Colors.grey : (todo.text.isEmpty ? Colors.grey : Colors.black),
                             ),
+                            strutStyle: const StrutStyle(
+                              fontSize: 22,
+                              height: 1.2,
+                              fontWeight: FontWeight.w500,
+                              forceStrutHeight: true,
+                            ),
                           ),
                               ),
                             );
                           },
                         ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
@@ -441,38 +531,18 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
             },
           ),
         ),
-            // Trash button in top-right corner
-            Positioned(
-              top: 16,
-              right: 16,
-              child: GestureDetector(
-                onTap: () => _showTrashSheet(context),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.black54,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-            // Bottom third swipe up gesture detector for trash
+            // Bottom quarter swipe up gesture detector for trash
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.of(context).size.height / 3,
+              height: MediaQuery.of(context).size.height / 4,
               child: GestureDetector(
-                onPanEnd: (details) {
-                  // Detect upward swipe with sufficient velocity
-                  if (details.velocity.pixelsPerSecond.dy < -500) {
-                    _showTrashSheet(context);
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragUpdate: (details) {
+                  // Detect upward swipe (negative delta)
+                  if (details.delta.dy < -10) {
+                    _showTrashSheet(scaffoldContext);
                   }
                 },
                 child: Container(
@@ -504,6 +574,9 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
     }
     for (var bounceController in _bounceControllers.values) {
       bounceController.dispose();
+    }
+    for (var deleteController in _deleteControllers.values) {
+      deleteController.dispose();
     }
     super.dispose();
   }
