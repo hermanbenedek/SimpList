@@ -8,7 +8,10 @@
       "Bash(open -a Simulator:*)",
       "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter run:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter pub get:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
