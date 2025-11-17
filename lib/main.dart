@@ -364,7 +364,10 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   }
 
   Future<void> _onRefresh() async {
-    _addTodo();
+    // Only allow refresh when scrolled to the top
+    if (_scrollController.hasClients && _scrollController.offset <= 0) {
+      _addTodo();
+    }
   }
 
   void _startEditing(int index) {
