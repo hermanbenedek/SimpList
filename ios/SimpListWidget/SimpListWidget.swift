@@ -190,33 +190,54 @@ struct SimpListWidgetEntryView : View {
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if entry.todos.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("No todos yet")
-                        .font(.system(size: 26, weight: .medium))
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(16)
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(Array(entry.todos.prefix(maxItems).enumerated()), id: \.element.id) { index, todo in
-                        if #available(iOS 17.0, *) {
-                            Button(intent: ToggleTodoIntent(index: index)) {
-                                TodoRowView(todo: todo)
+        ZStack {
+            // Background tap area to open app
+            Link(destination: URL(string: "simplist://")!) {
+                Color.clear
+            }
+
+            // Content on top
+            VStack(alignment: .leading, spacing: 0) {
+                if entry.todos.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("No todos yet")
+                            .font(.system(size: 26, weight: .medium))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(16)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(entry.todos.prefix(maxItems).enumerated()), id: \.element.id) { index, todo in
+                            HStack(spacing: 0) {
+                                if #available(iOS 17.0, *) {
+                                    Button(intent: ToggleTodoIntent(index: index)) {
+                                        Text(todo.text.isEmpty ? "Empty todo" : todo.text)
+                                            .font(.system(size: 26, weight: .medium))
+                                            .foregroundColor(todo.isDone ? .gray : .black)
+                                            .strikethrough(todo.isDone, color: .gray)
+                                            .lineLimit(1)
+                                            .opacity(todo.isDone ? 0.5 : 1.0)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                } else {
+                                    Text(todo.text.isEmpty ? "Empty todo" : todo.text)
+                                        .font(.system(size: 26, weight: .medium))
+                                        .foregroundColor(todo.isDone ? .gray : .black)
+                                        .strikethrough(todo.isDone, color: .gray)
+                                        .lineLimit(1)
+                                        .opacity(todo.isDone ? 0.5 : 1.0)
+                                }
+                                Spacer(minLength: 0)
                             }
-                            .buttonStyle(PlainButtonStyle())
-                        } else {
-                            TodoRowView(todo: todo)
                         }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(16)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(16)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     var maxItems: Int {
@@ -239,13 +260,15 @@ struct TodoRowView: View {
     let todo: TodoEntry
 
     var body: some View {
-        Text(todo.text.isEmpty ? "Empty todo" : todo.text)
-            .font(.system(size: 26, weight: .medium))
-            .foregroundColor(todo.isDone ? .gray : .black)
-            .strikethrough(todo.isDone, color: .gray)
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .opacity(todo.isDone ? 0.5 : 1.0)
+        HStack(spacing: 0) {
+            Text(todo.text.isEmpty ? "Empty todo" : todo.text)
+                .font(.system(size: 26, weight: .medium))
+                .foregroundColor(todo.isDone ? .gray : .black)
+                .strikethrough(todo.isDone, color: .gray)
+                .lineLimit(1)
+                .opacity(todo.isDone ? 0.5 : 1.0)
+            Spacer(minLength: 0)
+        }
     }
 }
 

@@ -20,7 +20,10 @@
       "Bash(xcodebuild:*)",
       "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter build:*)",
       "Bash(open:*)",
-      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter install:*)"
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter install:*)",
+      "Bash(log stream:*)",
+      "Bash(chmod:*)",
+      "Bash(swift check_defaults.swift:*)"
     ],
     "deny": [],
     "ask": []

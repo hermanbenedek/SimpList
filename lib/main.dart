@@ -68,6 +68,15 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
         _initializeControllers();
       });
     }
+
+    // Load trash items
+    final String? trashJson = prefs.getString('trash');
+    if (trashJson != null) {
+      final List<dynamic> decodedTrash = json.decode(trashJson);
+      setState(() {
+        _trash = decodedTrash.map((item) => TodoItem.fromJson(item)).toList();
+      });
+    }
   }
 
   void _initializeControllers() {
@@ -119,11 +128,26 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
     await _updateWidget();
   }
 
+  Future<void> _saveTrash() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = json.encode(_trash.map((item) => item.toJson()).toList());
+    await prefs.setString('trash', encoded);
+  }
+
   Future<void> _updateWidget() async {
     try {
       final String encoded = json.encode(_todos.map((item) => item.toJson()).toList());
       debugPrint('Updating widget with ${_todos.length} todos');
       debugPrint('JSON: $encoded');
+
+      // Use custom method channel to save directly to app group
+      const platform = MethodChannel('com.simplist.app/widget');
+      await platform.invokeMethod('saveWidgetData', {
+        'key': 'todos',
+        'value': encoded,
+      });
+
+      // Also try the home_widget way as backup
       await HomeWidget.saveWidgetData<String>('todos', encoded);
       await HomeWidget.updateWidget(
         iOSName: 'SimpListWidget',
@@ -318,6 +342,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   void _moveToTrash(int index) async {
     final todo = _todos[index];
     _trash.add(todo);
+    await _saveTrash();
 
     // Animate shrink to zero
     await _deleteControllers[index]?.forward();
@@ -373,6 +398,15 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
               _initializeControllers();
             });
             _saveTodos();
+            _saveTrash();
+            Navigator.of(dialogContext).pop();
+          },
+          onDelete: (int index) {
+            HapticFeedback.mediumImpact();
+            setState(() {
+              _trash.removeAt(index);
+            });
+            _saveTrash();
             Navigator.of(dialogContext).pop();
           },
         );
@@ -445,6 +479,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
 
               return GestureDetector(
                 key: Key('${todo.text}_$index'),
+                behavior: HitTestBehavior.translucent,
                 onHorizontalDragEnd: isEditing ? null : (details) {
                   if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
                     _animationControllers[index]?.forward().then((_) {
@@ -452,12 +487,6 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                       _startEditing(index);
                     });
                   }
-                },
-                onTap: isEditing ? null : () {
-                  _handleTap(index);
-                },
-                onDoubleTap: isEditing ? null : () {
-                  _handleDoubleTap(index);
                 },
                 child: AnimatedBuilder(
                   animation: _slideAnimations[index]!,
@@ -519,26 +548,30 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                               // Do nothing - let onSubmitted handle it
                             },
                           )
-                        : Text(
-                            todo.text.isEmpty ? 'Empty todo' : todo.text,
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w500,
-                              height: 1.2,
-                              letterSpacing: 0,
-                              textBaseline: TextBaseline.alphabetic,
-                              decoration: todo.isDone
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                              decorationColor: Colors.grey,
-                              decorationThickness: 2.0,
-                              color: todo.isDone ? Colors.grey : (todo.text.isEmpty ? Colors.grey : Colors.black),
-                            ),
-                            strutStyle: const StrutStyle(
-                              fontSize: 26,
-                              height: 1.2,
-                              fontWeight: FontWeight.w500,
-                              forceStrutHeight: true,
+                        : GestureDetector(
+                            onTap: () => _handleTap(index),
+                            onDoubleTap: () => _handleDoubleTap(index),
+                            child: Text(
+                              todo.text.isEmpty ? 'Empty todo' : todo.text,
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w500,
+                                height: 1.2,
+                                letterSpacing: 0,
+                                textBaseline: TextBaseline.alphabetic,
+                                decoration: todo.isDone
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
+                                decorationColor: Colors.grey,
+                                decorationThickness: 2.0,
+                                color: todo.isDone ? Colors.grey : (todo.text.isEmpty ? Colors.grey : Colors.black),
+                              ),
+                              strutStyle: const StrutStyle(
+                                fontSize: 26,
+                                height: 1.2,
+                                fontWeight: FontWeight.w500,
+                                forceStrutHeight: true,
+                              ),
                             ),
                           ),
                               ),
@@ -611,11 +644,13 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
 class TrashBottomSheet extends StatelessWidget {
   final List<TodoItem> trashItems;
   final Function(int) onRestore;
+  final Function(int) onDelete;
 
   const TrashBottomSheet({
     Key? key,
     required this.trashItems,
     required this.onRestore,
+    required this.onDelete,
   }) : super(key: key);
 
   @override
@@ -710,10 +745,26 @@ class TrashBottomSheet extends StatelessWidget {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.restore),
-                              onPressed: () => onRestore(index),
-                              tooltip: 'Restore',
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.replay,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: () => onRestore(index),
+                                  tooltip: 'Restore',
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: () => onDelete(index),
+                                  tooltip: 'Delete permanently',
+                                ),
+                              ],
                             ),
                           ),
                         ),
