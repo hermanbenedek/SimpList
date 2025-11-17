@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
@@ -129,6 +130,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   }
 
   void _addTodo() {
+    HapticFeedback.mediumImpact();
     setState(() {
       _todos.insert(0, TodoItem(text: '', isDone: false));
 
@@ -226,14 +228,16 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
     }
   }
 
-  void _onTodoSubmitted(int index) {
+  void _onTodoSubmitted(int index) async {
     if (_todos[index].text.trim().isEmpty) {
+      await _deleteControllers[index]?.forward();
       _removeTodo(index);
     }
   }
 
-  void _onTodoUnfocused(int index) {
+  void _onTodoUnfocused(int index) async {
     if (_todos[index].text.trim().isEmpty) {
+      await _deleteControllers[index]?.forward();
       _removeTodo(index);
     }
   }
@@ -319,6 +323,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   }
 
   void _toggleTodo(int index) async {
+    HapticFeedback.lightImpact();
     setState(() {
       _todos[index].isDone = !_todos[index].isDone;
     });
@@ -327,7 +332,10 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
     _saveTodos();
   }
 
-  void _handleDoubleTap(int index) {
+  void _handleDoubleTap(int index) async {
+    HapticFeedback.lightImpact();
+    await Future.delayed(const Duration(milliseconds: 50));
+    HapticFeedback.mediumImpact();
     // Immediately stop and reset all animations
     _bounceControllers[index]?.stop();
     _bounceControllers[index]?.value = 1.0;
@@ -343,6 +351,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   }
 
   void _showTrashSheet(BuildContext context) {
+    HapticFeedback.mediumImpact();
     CupertinoScaffold.showCupertinoModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -350,6 +359,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
         return TrashBottomSheet(
           trashItems: _trash,
           onRestore: (int index) {
+            HapticFeedback.mediumImpact();
             setState(() {
               _todos.insert(0, _trash[index]);
               _trash.removeAt(index);
@@ -366,11 +376,13 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   Future<void> _onRefresh() async {
     // Only allow refresh when scrolled to the top
     if (_scrollController.hasClients && _scrollController.offset <= 0) {
+      HapticFeedback.mediumImpact();
       _addTodo();
     }
   }
 
   void _startEditing(int index) {
+    HapticFeedback.selectionClick();
     setState(() {
       // Unfocus all other fields
       for (var focusNode in _focusNodes.values) {
@@ -478,20 +490,21 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                               contentPadding: EdgeInsets.zero,
                             ),
                             style: const TextStyle(
-                              fontSize: 22,
+                              fontSize: 26,
                               fontWeight: FontWeight.w500,
                               height: 1.2,
                               letterSpacing: 0,
                               textBaseline: TextBaseline.alphabetic,
                             ),
                             strutStyle: const StrutStyle(
-                              fontSize: 22,
+                              fontSize: 26,
                               height: 1.2,
                               fontWeight: FontWeight.w500,
                               forceStrutHeight: true,
                             ),
                             onChanged: (text) => _updateTodoText(index, text),
                             onSubmitted: (_) {
+                              HapticFeedback.mediumImpact();
                               _onTodoSubmitted(index);
                               _stopEditing();
                             },
@@ -502,7 +515,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                         : Text(
                             todo.text.isEmpty ? 'Empty todo' : todo.text,
                             style: TextStyle(
-                              fontSize: 22,
+                              fontSize: 26,
                               fontWeight: FontWeight.w500,
                               height: 1.2,
                               letterSpacing: 0,
@@ -515,7 +528,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
                               color: todo.isDone ? Colors.grey : (todo.text.isEmpty ? Colors.grey : Colors.black),
                             ),
                             strutStyle: const StrutStyle(
-                              fontSize: 22,
+                              fontSize: 26,
                               height: 1.2,
                               fontWeight: FontWeight.w500,
                               forceStrutHeight: true,

@@ -13,7 +13,11 @@
       "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter pub get:*)",
       "Bash(cat:*)",
       "Bash(nc:*)",
-      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter pub run flutter_launcher_icons:*)"
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter pub run flutter_launcher_icons:*)",
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter clean:*)",
+      "Bash(export LANG=en_US.UTF-8)",
+      "Bash(pod install)",
+      "Bash(xcodebuild:*)"
     ],
     "deny": [],
     "ask": []
