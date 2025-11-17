@@ -28,7 +28,11 @@ struct ToggleTodoIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         let sharedDefaults = UserDefaults(suiteName: "group.com.simplist.app")
-        guard let todosJson = sharedDefaults?.string(forKey: "todos"),
+
+        // Try both keys
+        let key = sharedDefaults?.string(forKey: "HomeWidget.todos") != nil ? "HomeWidget.todos" : "todos"
+
+        guard let todosJson = sharedDefaults?.string(forKey: key),
               let data = todosJson.data(using: .utf8),
               var jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
             return .result()
@@ -45,8 +49,11 @@ struct ToggleTodoIntent: AppIntent {
 
             if let updatedData = try? JSONSerialization.data(withJSONObject: jsonArray),
                let updatedJson = String(data: updatedData, encoding: .utf8) {
-                sharedDefaults?.set(updatedJson, forKey: "todos")
+                sharedDefaults?.set(updatedJson, forKey: key)
                 sharedDefaults?.synchronize()
+
+                // Trigger widget reload
+                WidgetCenter.shared.reloadAllTimelines()
             }
         }
 
@@ -71,7 +78,11 @@ struct DeleteTodoIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         let sharedDefaults = UserDefaults(suiteName: "group.com.simplist.app")
-        guard let todosJson = sharedDefaults?.string(forKey: "todos"),
+
+        // Try both keys
+        let key = sharedDefaults?.string(forKey: "HomeWidget.todos") != nil ? "HomeWidget.todos" : "todos"
+
+        guard let todosJson = sharedDefaults?.string(forKey: key),
               let data = todosJson.data(using: .utf8),
               var jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
             return .result()
@@ -85,8 +96,11 @@ struct DeleteTodoIntent: AppIntent {
 
         if let updatedData = try? JSONSerialization.data(withJSONObject: jsonArray),
            let updatedJson = String(data: updatedData, encoding: .utf8) {
-            sharedDefaults?.set(updatedJson, forKey: "todos")
+            sharedDefaults?.set(updatedJson, forKey: key)
             sharedDefaults?.synchronize()
+
+            // Trigger widget reload
+            WidgetCenter.shared.reloadAllTimelines()
         }
 
         return .result()
@@ -119,19 +133,42 @@ struct Provider: TimelineProvider {
 
     func loadTodos() -> [TodoEntry] {
         let sharedDefaults = UserDefaults(suiteName: "group.com.simplist.app")
-        guard let todosJson = sharedDefaults?.string(forKey: "todos"),
-              let data = todosJson.data(using: .utf8),
-              let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+
+        // Debug: Print all keys in shared defaults
+        if let allKeys = sharedDefaults?.dictionaryRepresentation().keys {
+            print("Widget: All keys in shared defaults: \(allKeys)")
+        }
+
+        // Try both "todos" and "HomeWidget.todos" keys (home_widget package prefixes keys)
+        var todosJson: String? = sharedDefaults?.string(forKey: "HomeWidget.todos")
+        if todosJson == nil {
+            todosJson = sharedDefaults?.string(forKey: "todos")
+        }
+
+        if let todosJson = todosJson {
+            print("Widget found todos JSON: \(todosJson)")
+        } else {
+            print("Widget: No todos found in shared defaults")
             return []
         }
 
-        return jsonArray.compactMap { dict in
+        guard let jsonString = todosJson,
+              let data = jsonString.data(using: .utf8),
+              let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            print("Widget: Failed to parse todos")
+            return []
+        }
+
+        let todos = jsonArray.compactMap { dict -> TodoEntry? in
             guard let text = dict["text"] as? String,
                   let isDone = dict["isDone"] as? Bool else {
                 return nil
             }
             return TodoEntry(text: text, isDone: isDone)
         }
+
+        print("Widget loaded \(todos.count) todos")
+        return todos
     }
 }
 
