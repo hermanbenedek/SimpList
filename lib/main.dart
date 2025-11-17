@@ -46,7 +46,6 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   final Map<int, Animation<double>> _fadeAnimations = {};
   final Map<int, AnimationController> _deleteControllers = {};
   final Map<int, Animation<double>> _deleteAnimations = {};
-  int? _pendingTapIndex;
 
   @override
   void initState() {
@@ -316,13 +315,7 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   }
 
   void _handleTap(int index) {
-    _pendingTapIndex = index;
-    Future.delayed(const Duration(milliseconds: 200), () {
-      if (_pendingTapIndex == index) {
-        _toggleTodo(index);
-        _pendingTapIndex = null;
-      }
-    });
+    _toggleTodo(index);
   }
 
   void _toggleTodo(int index) async {
@@ -335,7 +328,17 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   }
 
   void _handleDoubleTap(int index) {
-    _pendingTapIndex = null; // Cancel any pending single tap
+    // Immediately stop and reset all animations
+    _bounceControllers[index]?.stop();
+    _bounceControllers[index]?.value = 1.0;
+
+    // Revert the isDone state if it was just toggled
+    if (_todos[index].isDone != _todos[index].isDone) {
+      setState(() {
+        _todos[index].isDone = !_todos[index].isDone;
+      });
+    }
+
     _moveToTrash(index);
   }
 
