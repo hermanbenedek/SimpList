@@ -537,11 +537,11 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
             },
           ),
         ),
-            // Bottom quarter swipe up gesture detector for trash
+            // Bottom right corner swipe up gesture detector for trash
             Positioned(
               bottom: 0,
-              left: 0,
               right: 0,
+              width: MediaQuery.of(context).size.width / 3,
               height: MediaQuery.of(context).size.height / 4,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
