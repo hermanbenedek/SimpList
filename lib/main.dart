@@ -5,8 +5,12 @@ import 'package:home_widget/home_widget.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'dart:convert';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Set app group ID for widget communication
+  await HomeWidget.setAppGroupId('group.com.simplist.app');
+
   runApp(const MyApp());
 }
 
@@ -118,11 +122,14 @@ class _TodoListPageState extends State<TodoListPage> with TickerProviderStateMix
   Future<void> _updateWidget() async {
     try {
       final String encoded = json.encode(_todos.map((item) => item.toJson()).toList());
+      debugPrint('Updating widget with ${_todos.length} todos');
+      debugPrint('JSON: $encoded');
       await HomeWidget.saveWidgetData<String>('todos', encoded);
       await HomeWidget.updateWidget(
         iOSName: 'SimpListWidget',
         androidName: 'SimpListWidget',
       );
+      debugPrint('Widget update completed');
     } catch (e) {
       // Widget update failed, but don't interrupt the app
       debugPrint('Failed to update widget: $e');

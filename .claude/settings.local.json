@@ -18,7 +18,9 @@
       "Bash(export LANG=en_US.UTF-8)",
       "Bash(pod install)",
       "Bash(xcodebuild:*)",
-      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter build:*)"
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter build:*)",
+      "Bash(open:*)",
+      "Bash(/Users/benedekherman/fvm/versions/3.35.1/bin/flutter install:*)"
     ],
     "deny": [],
     "ask": []
