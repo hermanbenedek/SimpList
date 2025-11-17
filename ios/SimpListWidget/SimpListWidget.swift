@@ -15,6 +15,14 @@ import AppIntents
 struct ToggleTodoIntent: AppIntent {
     static var title: LocalizedStringResource = "Toggle Todo"
 
+    init(index: Int) {
+        self.index = index
+    }
+
+    init() {
+        self.index = 0
+    }
+
     @Parameter(title: "Index")
     var index: Int
 
@@ -49,6 +57,14 @@ struct ToggleTodoIntent: AppIntent {
 @available(iOS 17.0, *)
 struct DeleteTodoIntent: AppIntent {
     static var title: LocalizedStringResource = "Delete Todo"
+
+    init(index: Int) {
+        self.index = index
+    }
+
+    init() {
+        self.index = 0
+    }
 
     @Parameter(title: "Index")
     var index: Int
@@ -150,20 +166,10 @@ struct SimpListWidgetEntryView : View {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(Array(entry.todos.prefix(maxItems).enumerated()), id: \.element.id) { index, todo in
                         if #available(iOS 17.0, *) {
-                            HStack(spacing: 0) {
-                                Button(intent: ToggleTodoIntent(index: index)) {
-                                    TodoRowView(todo: todo)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-
-                                Button(intent: DeleteTodoIntent(index: index)) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(.red.opacity(0.7))
-                                        .padding(.leading, 8)
-                                }
-                                .buttonStyle(PlainButtonStyle())
+                            Button(intent: ToggleTodoIntent(index: index)) {
+                                TodoRowView(todo: todo)
                             }
+                            .buttonStyle(PlainButtonStyle())
                         } else {
                             TodoRowView(todo: todo)
                         }
