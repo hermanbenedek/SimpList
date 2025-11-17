@@ -236,3 +236,30 @@ struct SimpListWidget: Widget {
         TodoEntry(text: "Finish project", isDone: false)
     ])
 }
+
+#Preview(as: .systemMedium) {
+    SimpListWidget()
+} timeline: {
+    SimpleEntry(date: .now, todos: [
+        TodoEntry(text: "Buy groceries", isDone: false),
+        TodoEntry(text: "Call mom", isDone: true),
+        TodoEntry(text: "Finish project", isDone: false),
+        TodoEntry(text: "Walk the dog", isDone: false),
+        TodoEntry(text: "Read a book", isDone: true)
+    ])
+}
+
+#Preview(as: .systemLarge) {
+    SimpListWidget()
+} timeline: {
+    SimpleEntry(date: .now, todos: [
+        TodoEntry(text: "Buy groceries", isDone: false),
+        TodoEntry(text: "Call mom", isDone: true),
+        TodoEntry(text: "Finish project", isDone: false),
+        TodoEntry(text: "Walk the dog", isDone: false),
+        TodoEntry(text: "Read a book", isDone: true),
+        TodoEntry(text: "Clean the house", isDone: false),
+        TodoEntry(text: "Send emails", isDone: true),
+        TodoEntry(text: "Exercise", isDone: false)
+    ])
+}
