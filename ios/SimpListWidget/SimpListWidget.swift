@@ -27,7 +27,7 @@ struct ToggleTodoIntent: AppIntent {
     var index: Int
 
     func perform() async throws -> some IntentResult {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.simplist.app")
+        let sharedDefaults = UserDefaults(suiteName: "group.simplist.todo.app")
 
         // Try both keys
         let key = sharedDefaults?.string(forKey: "HomeWidget.todos") != nil ? "HomeWidget.todos" : "todos"
@@ -77,7 +77,7 @@ struct DeleteTodoIntent: AppIntent {
     var index: Int
 
     func perform() async throws -> some IntentResult {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.simplist.app")
+        let sharedDefaults = UserDefaults(suiteName: "group.simplist.todo.app")
 
         // Try both keys
         let key = sharedDefaults?.string(forKey: "HomeWidget.todos") != nil ? "HomeWidget.todos" : "todos"
@@ -132,7 +132,7 @@ struct Provider: TimelineProvider {
     }
 
     func loadTodos() -> [TodoEntry] {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.simplist.app")
+        let sharedDefaults = UserDefaults(suiteName: "group.simplist.todo.app")
 
         // Debug: Print all keys in shared defaults
         if let allKeys = sharedDefaults?.dictionaryRepresentation().keys {
